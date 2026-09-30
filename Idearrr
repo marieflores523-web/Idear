@@ -1,0 +1,598 @@
+from pathlib import Path
+import zipfile, textwrap, os, json, re
+
+out_dir = Path("/mnt/data/programa_primera_experiencia")
+out_dir.mkdir(parents=True, exist_ok=True)
+
+html = r'''<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Programa de Primera Experiencia Profesional</title>
+  <style>
+    :root{
+      --bg:#08111f;
+      --panel:#0f1b2d;
+      --panel2:#13233a;
+      --text:#f4f7fb;
+      --muted:#aebbd0;
+      --accent:#b97cff;
+      --accent2:#7c5cff;
+      --green:#66d19e;
+      --yellow:#f3c969;
+      --red:#ff7b7b;
+      --line:#243652;
+      --white:#ffffff;
+      --shadow:0 18px 50px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background:linear-gradient(180deg,#07101c 0%,#0a1423 100%);
+      color:var(--text);
+      line-height:1.45;
+    }
+    a{color:inherit;text-decoration:none}
+    button,input,select,textarea{font:inherit}
+    .wrap{width:min(1160px,92vw);margin:0 auto}
+    .nav{
+      position:sticky;top:0;z-index:50;
+      backdrop-filter:blur(16px);
+      background:rgba(8,17,31,.82);
+      border-bottom:1px solid rgba(255,255,255,.06)
+    }
+    .nav-inner{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:16px 0}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800}
+    .brand-mark{
+      width:38px;height:38px;border-radius:12px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      box-shadow:0 8px 30px rgba(185,124,255,.25);
+      color:#0a1020;font-weight:950
+    }
+    .brand small{display:block;color:var(--muted);font-weight:600;font-size:11px;margin-top:1px}
+    .nav-links{display:flex;gap:18px;align-items:center;color:var(--muted);font-size:14px}
+    .nav-links a:hover{color:var(--white)}
+    .pill{
+      border:1px solid rgba(255,255,255,.12);
+      padding:9px 13px;border-radius:999px;background:rgba(255,255,255,.04)
+    }
+    .hero{padding:76px 0 52px;position:relative;overflow:hidden}
+    .hero:before{
+      content:"";position:absolute;right:-180px;top:-220px;width:620px;height:620px;border-radius:50%;
+      background:radial-gradient(circle,rgba(185,124,255,.20),rgba(185,124,255,0) 68%);
+      pointer-events:none
+    }
+    .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:44px;align-items:center}
+    .eyebrow{color:#cda8ff;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+    h1{font-size:clamp(40px,6vw,72px);line-height:1.02;margin:12px 0 18px;letter-spacing:-.045em}
+    .lead{font-size:19px;color:var(--muted);max-width:680px}
+    .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+    .btn{
+      border:0;border-radius:14px;padding:13px 18px;font-weight:800;cursor:pointer;
+      transition:.2s transform,.2s opacity,.2s background
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0b1020}
+    .btn-secondary{background:#14243a;color:var(--white);border:1px solid rgba(255,255,255,.10)}
+    .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+    .hero-card{
+      background:linear-gradient(180deg,rgba(20,36,58,.9),rgba(13,25,42,.9));
+      border:1px solid rgba(255,255,255,.09);border-radius:26px;padding:22px;box-shadow:var(--shadow)
+    }
+    .status{
+      background:#0b1729;border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px
+    }
+    .status-row{display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .status strong{font-size:14px}
+    .tag{font-size:12px;font-weight:800;padding:6px 9px;border-radius:999px}
+    .tag.green{background:rgba(102,209,158,.14);color:#8ce6b8}
+    .tag.yellow{background:rgba(243,201,105,.12);color:#f4d88f}
+    .progress{height:8px;background:#172941;border-radius:99px;overflow:hidden;margin-top:12px}
+    .progress > span{display:block;height:100%;width:64%;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+    .mini-list{display:grid;gap:10px;margin-top:16px}
+    .mini{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:14px;background:rgba(255,255,255,.03)}
+    .icon{width:34px;height:34px;flex:0 0 34px;border-radius:10px;display:grid;place-items:center;background:#182b47}
+    section{padding:58px 0}
+    .section-head{display:flex;justify-content:space-between;gap:30px;align-items:end;margin-bottom:26px}
+    .section-head h2{font-size:34px;margin:0;letter-spacing:-.02em}
+    .section-head p{color:var(--muted);margin:0;max-width:610px}
+    .steps{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+    .step{
+      min-height:178px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px
+    }
+    .step-num{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(185,124,255,.16);color:#d6b8ff;font-weight:900}
+    .step h3{font-size:16px;margin:14px 0 8px}
+    .step p{font-size:13px;color:var(--muted);margin:0}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px}
+    .card h3{margin-top:0;font-size:24px}
+    .card p{color:var(--muted)}
+    .features{display:grid;gap:10px;margin:18px 0 0;padding:0;list-style:none}
+    .features li{display:flex;gap:10px;color:#dbe4f1}
+    .check{color:var(--green);font-weight:900}
+    .institutional{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+    .inst{border:1px solid var(--line);border-radius:18px;padding:18px;background:#0c182a}
+    .inst strong{display:block;margin-bottom:6px}
+    .inst p{font-size:13px;margin:0;color:var(--muted)}
+    .form-shell{
+      margin-top:22px;background:#0b1729;border:1px solid var(--line);border-radius:22px;padding:22px;display:none
+    }
+    .form-shell.active{display:block}
+    .form-title{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}
+    .form-title h4{margin:0;font-size:20px}
+    .close{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:20px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .field{display:grid;gap:7px}
+    .field.full{grid-column:1/-1}
+    label{font-size:13px;font-weight:800;color:#d7dfeb}
+    input,select,textarea{
+      width:100%;border:1px solid #2c3f5d;background:#0a1423;color:var(--text);border-radius:12px;padding:12px 13px;outline:none
+    }
+    input:focus,select:focus,textarea:focus{border-color:#8e64d8;box-shadow:0 0 0 3px rgba(185,124,255,.10)}
+    textarea{min-height:90px;resize:vertical}
+    .form-note{font-size:12px;color:var(--muted);margin:12px 0}
+    .success{
+      display:none;margin-top:18px;background:rgba(102,209,158,.08);border:1px solid rgba(102,209,158,.35);
+      padding:18px;border-radius:18px
+    }
+    .success.active{display:block}
+    .wait-card{
+      margin-top:16px;display:grid;grid-template-columns:1.1fr .9fr;gap:14px
+    }
+    .wait-box{background:#0c1829;border:1px solid var(--line);border-radius:16px;padding:16px}
+    .timeline{display:grid;gap:10px;margin-top:12px}
+    .timeline-row{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px}
+    .dot{width:10px;height:10px;border-radius:50%;background:#50627d}
+    .dot.on{background:var(--green);box-shadow:0 0 0 5px rgba(102,209,158,.08)}
+    .survey{display:grid;gap:10px}
+    .rating{display:flex;gap:7px;flex-wrap:wrap}
+    .rate{
+      min-width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:#101e32;color:var(--text);cursor:pointer;font-weight:900
+    }
+    .rate.selected{background:var(--accent);color:#0b1020;border-color:transparent}
+    .metrics{
+      background:#091321;border:1px solid var(--line);border-radius:20px;padding:20px;margin-top:22px
+    }
+    .metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .metric{padding:16px;border-radius:16px;background:#101e32;border:1px solid #213451}
+    .metric b{font-size:27px;display:block;margin-top:4px}
+    .metric small{color:var(--muted)}
+    .fineprint{font-size:12px;color:#7f8da3;margin-top:16px}
+    footer{padding:30px 0 50px;color:#8390a4;border-top:1px solid rgba(255,255,255,.06);font-size:12px}
+    .toast{
+      position:fixed;right:22px;bottom:22px;background:#15253c;border:1px solid #2c4263;padding:12px 14px;border-radius:14px;
+      box-shadow:var(--shadow);display:none;z-index:90
+    }
+    .toast.show{display:block}
+    @media (max-width:950px){
+      .hero-grid,.two-col,.wait-card{grid-template-columns:1fr}
+      .steps{grid-template-columns:1fr 1fr}
+      .institutional{grid-template-columns:1fr}
+      .metric-grid{grid-template-columns:1fr 1fr}
+      .nav-links{display:none}
+    }
+    @media (max-width:620px){
+      .steps,.grid,.metric-grid{grid-template-columns:1fr}
+      .hero{padding-top:48px}
+      h1{font-size:42px}
+      .section-head{display:block}
+      .section-head p{margin-top:10px}
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <div class="brand">
+        <div class="brand-mark">PE</div>
+        <div>Primera Experiencia<small>Prototipo académico</small></div>
+      </div>
+      <div class="nav-links">
+        <a href="#como">Cómo funciona</a>
+        <a href="#estudiantes">Estudiantes</a>
+        <a href="#empresas">Empresas</a>
+        <a href="#instituciones">Instituciones</a>
+        <a class="pill" href="#resultados">Modo equipo</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow">Programa de Primera Experiencia Profesional</div>
+        <h1>Empieza tu vida profesional mientras estudias.</h1>
+        <p class="lead">
+          Conectamos estudiantes universitarios de Medellín con empresas que ofrecen oportunidades compatibles con su carrera, habilidades y disponibilidad académica.
+        </p>
+        <div class="cta-row">
+          <button class="btn btn-primary" onclick="openStudent()">Soy estudiante</button>
+          <button class="btn btn-secondary" onclick="openCompany()">Quiero vincular mi empresa</button>
+          <button class="btn btn-ghost" onclick="document.querySelector('#instituciones').scrollIntoView()">Participación institucional</button>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <div class="status">
+          <div class="status-row">
+            <strong>Estado de ejemplo</strong>
+            <span class="tag green">Perfil activo</span>
+          </div>
+          <div class="progress"><span></span></div>
+          <div class="status-row" style="margin-top:10px">
+            <span style="font-size:13px;color:var(--muted)">Buscando oportunidades compatibles</span>
+            <span class="tag yellow">1 a 2 semanas</span>
+          </div>
+        </div>
+        <div class="mini-list">
+          <div class="mini">
+            <div class="icon">🎓</div>
+            <div><strong>Perfil académico</strong><div style="color:var(--muted);font-size:13px">Carrera, semestre y habilidades.</div></div>
+          </div>
+          <div class="mini">
+            <div class="icon">🕒</div>
+            <div><strong>Disponibilidad real</strong><div style="color:var(--muted);font-size:13px">Oportunidades que se ajustan a tus clases.</div></div>
+          </div>
+          <div class="mini">
+            <div class="icon">💼</div>
+            <div><strong>Experiencia relevante</strong><div style="color:var(--muted);font-size:13px">Opciones relacionadas con tu formación.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="como">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="eyebrow">Recorrido</div><h2>¿Cómo funciona?</h2></div>
+        <p>El prototipo sigue el recorrido planteado en la ficha de concepto y permite probar registro, espera, interés de empresas y participación institucional.</p>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><h3>Crea tu perfil</h3><p>Registra carrera, semestre, habilidades, intereses y disponibilidad.</p></div>
+        <div class="step"><div class="step-num">2</div><h3>Validación</h3><p>La universidad puede complementar o validar la información académica.</p></div>
+        <div class="step"><div class="step-num">3</div><h3>Conexión</h3><p>Se cruzan perfil, intereses, habilidades y horarios con oportunidades.</p></div>
+        <div class="step"><div class="step-num">4</div><h3>Selección</h3><p>Estudiante y empresa avanzan al proceso de selección e inicio.</p></div>
+        <div class="step"><div class="step-num">5</div><h3>Seguimiento</h3><p>Se acompaña la experiencia y se registran resultados de aprendizaje.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="estudiantes">
+    <div class="wrap">
+      <div class="two-col">
+        <div class="card">
+          <div class="eyebrow">Para estudiantes</div>
+          <h3>Una primera experiencia que se ajuste a tu universidad.</h3>
+          <p>El objetivo es reducir barreras de horario, experiencia previa y falta de conexión entre formación académica y trabajo.</p>
+          <ul class="features">
+            <li><span class="check">✓</span> Perfil según carrera, semestre y habilidades.</li>
+            <li><span class="check">✓</span> Disponibilidad académica incluida en la búsqueda.</li>
+            <li><span class="check">✓</span> Estado visible mientras esperas oportunidades.</li>
+            <li><span class="check">✓</span> Notificaciones cuando aparezca una opción compatible.</li>
+          </ul>
+          <div class="cta-row">
+            <button class="btn btn-primary" onclick="openStudent()">Crear mi perfil</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">Qué estamos probando</div>
+          <h3>Registro rápido y espera clara.</h3>
+          <p>Este prototipo registra el tiempo de diligenciamiento y permite calificar la facilidad del proceso. Después muestra un estado de espera para probar si el estudiante estaría dispuesto a mantener activo su perfil.</p>
+          <div class="status-row" style="margin-top:20px">
+            <span class="tag green">Meta registro</span>
+            <strong>≤ 5 minutos</strong>
+          </div>
+          <div class="status-row" style="margin-top:12px">
+            <span class="tag yellow">Meta facilidad</span>
+            <strong>4 o 5 / 5</strong>
+          </div>
+        </div>
+      </div>
+
+      <div id="studentForm" class="form-shell">
+        <div class="form-title">
+          <h4>Crea tu perfil de estudiante</h4>
+          <button class="close" onclick="closeForm('studentForm')">✕</button>
+        </div>
+        <form id="formStudent">
+          <div class="grid">
+            <div class="field"><label>Nombre</label><input required name="nombre" placeholder="Tu nombre" /></div>
+            <div class="field"><label>Universidad</label><input required name="universidad" placeholder="Ej. EAFIT" /></div>
+            <div class="field"><label>Carrera</label><input required name="carrera" placeholder="Ej. Administración de Negocios" /></div>
+            <div class="field"><label>Semestre</label>
+              <select required name="semestre"><option value="">Selecciona</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10+</option></select>
+            </div>
+            <div class="field full"><label>Habilidades principales</label><input required name="habilidades" placeholder="Ej. Excel, diseño, análisis de datos, ventas" /></div>
+            <div class="field"><label>Área de interés</label><input required name="interes" placeholder="Ej. Marketing, finanzas, operaciones" /></div>
+            <div class="field"><label>Disponibilidad</label>
+              <select required name="disponibilidad"><option value="">Selecciona</option><option>Mañanas</option><option>Tardes</option><option>Noches</option><option>Fines de semana</option><option>Por proyectos</option></select>
+            </div>
+            <div class="field"><label>Correo</label><input required type="email" name="correo" placeholder="correo@ejemplo.com" /></div>
+            <div class="field"><label>Celular</label><input required name="celular" placeholder="300 000 0000" /></div>
+          </div>
+          <p class="form-note">Prototipo académico. Los datos se guardan únicamente en este navegador para simular el experimento.</p>
+          <button class="btn btn-primary" type="submit">Crear mi perfil</button>
+        </form>
+
+        <div id="studentSuccess" class="success">
+          <strong>Perfil creado correctamente.</strong>
+          <p style="color:#cfe9dc">Tu perfil queda activo mientras el programa busca oportunidades compatibles.</p>
+
+          <div class="wait-card">
+            <div class="wait-box">
+              <div class="status-row">
+                <strong>Estado de tu perfil</strong>
+                <span class="tag green">Activo</span>
+              </div>
+              <div class="timeline">
+                <div class="timeline-row"><span class="dot on"></span> Registro completado</div>
+                <div class="timeline-row"><span class="dot on"></span> Perfil disponible para validación</div>
+                <div class="timeline-row"><span class="dot on"></span> Búsqueda de oportunidades activa</div>
+                <div class="timeline-row"><span class="dot"></span> Oportunidad compatible encontrada</div>
+              </div>
+              <p style="color:var(--muted);font-size:13px;margin-bottom:0">Tiempo estimado de espera: 1 a 2 semanas. Recibirás una notificación cuando aparezca una oportunidad compatible.</p>
+            </div>
+
+            <div class="wait-box survey">
+              <strong>Encuesta rápida</strong>
+              <span style="color:var(--muted);font-size:13px">¿Qué tan fácil fue registrarte?</span>
+              <div class="rating" data-group="ease">
+                <button type="button" class="rate" data-v="1">1</button><button type="button" class="rate" data-v="2">2</button><button type="button" class="rate" data-v="3">3</button><button type="button" class="rate" data-v="4">4</button><button type="button" class="rate" data-v="5">5</button>
+              </div>
+              <span style="color:var(--muted);font-size:13px">¿Mantendrías tu perfil activo durante esta espera?</span>
+              <div class="cta-row" style="margin-top:0">
+                <button type="button" class="btn btn-secondary" onclick="setWait(true)">Sí</button>
+                <button type="button" class="btn btn-ghost" onclick="setWait(false)">No</button>
+              </div>
+              <button type="button" class="btn btn-primary" onclick="saveStudentSurvey()">Guardar respuesta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="empresas">
+    <div class="wrap">
+      <div class="two-col">
+        <div class="card">
+          <div class="eyebrow">Para empresas</div>
+          <h3>Conecta con estudiantes según tus necesidades.</h3>
+          <p>El programa busca facilitar la identificación y vinculación de empresas interesadas en ofrecer primeras experiencias profesionales a estudiantes universitarios.</p>
+          <ul class="features">
+            <li><span class="check">✓</span> Perfiles por carrera y habilidades.</li>
+            <li><span class="check">✓</span> Disponibilidad académica visible.</li>
+            <li><span class="check">✓</span> Oportunidades de medio tiempo, por horas o por proyectos.</li>
+            <li><span class="check">✓</span> Acompañamiento durante la experiencia.</li>
+          </ul>
+          <div class="cta-row">
+            <button id="companyCTA" class="btn btn-primary" onclick="openCompany()">Quiero vincular mi empresa</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow">Experimento de interés</div>
+          <h3>¿Hay intención real de vincularse?</h3>
+          <p>La matriz plantea observar cuántas empresas que interactúan con esta página hacen clic en el llamado a la acción para vincularse.</p>
+          <div class="status-row" style="margin-top:20px">
+            <span class="tag yellow">Criterio</span>
+            <strong>Al menos 20% hacen clic</strong>
+          </div>
+          <p class="fineprint">El contador del prototipo funciona localmente en este navegador y sirve para una demostración o prueba guiada.</p>
+        </div>
+      </div>
+
+      <div id="companyForm" class="form-shell">
+        <div class="form-title">
+          <h4>Registro de interés de empresa</h4>
+          <button class="close" onclick="closeForm('companyForm')">✕</button>
+        </div>
+        <form id="formCompany">
+          <div class="grid">
+            <div class="field"><label>Empresa</label><input required name="empresa" placeholder="Nombre de la empresa" /></div>
+            <div class="field"><label>Persona de contacto</label><input required name="contacto" placeholder="Nombre y cargo" /></div>
+            <div class="field"><label>Correo</label><input required type="email" name="correo" placeholder="correo@empresa.com" /></div>
+            <div class="field"><label>Área donde recibiría estudiantes</label><input required name="area" placeholder="Ej. Marketing, finanzas, operaciones" /></div>
+            <div class="field full"><label>Tipo de experiencia que podría ofrecer</label>
+              <select required name="tipo"><option value="">Selecciona</option><option>Medio tiempo</option><option>Por horas</option><option>Por proyecto</option><option>Práctica corta</option><option>Otro</option></select>
+            </div>
+          </div>
+          <p class="form-note">Este formulario simula el CTA de la matriz de validación de interés de empresas.</p>
+          <button class="btn btn-primary" type="submit">Registrar interés</button>
+        </form>
+        <div id="companySuccess" class="success"><strong>Interés registrado.</strong><p>Gracias. En una versión real, el equipo del programa se pondría en contacto para validar necesidades y condiciones de participación.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="instituciones">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="eyebrow">Articulación</div><h2>Estado, universidades y empresas</h2></div>
+        <p>Esta sección permite explicar y probar qué funciones podría asumir cada actor dentro del Programa de Primera Experiencia Profesional.</p>
+      </div>
+
+      <div class="institutional">
+        <div class="inst"><strong>Secretaría de Desarrollo Económico</strong><p>Apoyo en conexión con empresas, difusión de la iniciativa y articulación institucional.</p></div>
+        <div class="inst"><strong>Universidades</strong><p>Validación o complemento del perfil académico y conexión con estudiantes.</p></div>
+        <div class="inst"><strong>Empresas</strong><p>Publicación de experiencias, selección y retroalimentación sobre el proceso.</p></div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <div class="eyebrow">Validación de participación</div>
+        <h3>¿En qué actividades estaría dispuesta a participar la Secretaría?</h3>
+        <p>Selecciona una o varias funciones para simular la conversación propuesta en la matriz de experimentación.</p>
+        <div class="grid">
+          <label class="inst" style="cursor:pointer"><input type="checkbox" class="sec-role" value="Conectar empresas" style="width:auto;margin-right:8px"> Conectar empresas interesadas</label>
+          <label class="inst" style="cursor:pointer"><input type="checkbox" class="sec-role" value="Difundir convocatoria" style="width:auto;margin-right:8px"> Difundir convocatoria y programa</label>
+          <label class="inst" style="cursor:pointer"><input type="checkbox" class="sec-role" value="Articular universidades" style="width:auto;margin-right:8px"> Articular universidades</label>
+          <label class="inst" style="cursor:pointer"><input type="checkbox" class="sec-role" value="Acompañar seguimiento" style="width:auto;margin-right:8px"> Acompañar seguimiento y resultados</label>
+        </div>
+        <div class="cta-row">
+          <button class="btn btn-primary" onclick="saveSecretariat()">Registrar participación</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="resultados">
+    <div class="wrap">
+      <div class="section-head">
+        <div><div class="eyebrow">Modo equipo</div><h2>Resultados del prototipo</h2></div>
+        <p>Estos indicadores se alimentan con las interacciones realizadas en este navegador. Sirven para demostrar cómo podrían medirse las matrices.</p>
+      </div>
+
+      <div class="metrics">
+        <div class="metric-grid">
+          <div class="metric"><small>Clics CTA empresas</small><b id="mCompanyClicks">0</b></div>
+          <div class="metric"><small>Registros estudiantes</small><b id="mStudentRegs">0</b></div>
+          <div class="metric"><small>Tiempo promedio registro</small><b id="mAvgTime">0 s</b></div>
+          <div class="metric"><small>Promedio facilidad</small><b id="mEase">—</b></div>
+          <div class="metric"><small>Mantendrían perfil activo</small><b id="mWait">—</b></div>
+          <div class="metric"><small>Empresas registradas</small><b id="mCompanies">0</b></div>
+          <div class="metric"><small>Validaciones Secretaría</small><b id="mSecretariat">0</b></div>
+          <div class="metric"><small>Funciones seleccionadas</small><b id="mRoles">0</b></div>
+        </div>
+        <div class="cta-row">
+          <button class="btn btn-ghost" onclick="resetMetrics()">Reiniciar datos de prueba</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      Prototipo académico del Programa de Primera Experiencia Profesional. No representa un programa oficial ni implica vinculación real con la Secretaría de Desarrollo Económico, universidades o empresas.
+    </div>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const KEY='pep_proto_v1';
+    let studentStart=null, waitChoice=null, easeChoice=null;
+
+    function state(){
+      const raw=localStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : {
+        companyClicks:0, studentRegs:0, regTimes:[], ease:[], waitYes:0, waitTotal:0,
+        companies:0, secretariatValidations:0, secretariatRoles:0
+      };
+    }
+    function save(s){localStorage.setItem(KEY,JSON.stringify(s));renderMetrics();}
+    function toast(msg){
+      const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),2200);
+    }
+    function closeForm(id){document.getElementById(id).classList.remove('active')}
+    function openStudent(){
+      const el=document.getElementById('studentForm');
+      el.classList.add('active');studentStart=Date.now();
+      document.querySelector('#estudiantes').scrollIntoView({behavior:'smooth'});
+      setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'center'}),250);
+    }
+    function openCompany(){
+      const s=state();s.companyClicks++;save(s);
+      const el=document.getElementById('companyForm');
+      el.classList.add('active');
+      document.querySelector('#empresas').scrollIntoView({behavior:'smooth'});
+      setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'center'}),250);
+    }
+
+    document.getElementById('formStudent').addEventListener('submit',function(e){
+      e.preventDefault();
+      const seconds=Math.max(1,Math.round((Date.now()-(studentStart||Date.now()))/1000));
+      const s=state();s.studentRegs++;s.regTimes.push(seconds);save(s);
+      document.getElementById('studentSuccess').classList.add('active');
+      this.style.display='none';
+      toast('Perfil creado en '+seconds+' segundos');
+    });
+
+    document.querySelectorAll('.rating[data-group="ease"] .rate').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        easeChoice=Number(btn.dataset.v);
+        document.querySelectorAll('.rating[data-group="ease"] .rate').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+    function setWait(v){waitChoice=v;toast(v?'Respuesta: sí':'Respuesta: no')}
+    function saveStudentSurvey(){
+      if(easeChoice===null || waitChoice===null){toast('Selecciona facilidad y respuesta de espera');return}
+      const s=state();s.ease.push(easeChoice);s.waitTotal++;if(waitChoice)s.waitYes++;save(s);
+      toast('Respuesta guardada');
+    }
+
+    document.getElementById('formCompany').addEventListener('submit',function(e){
+      e.preventDefault();const s=state();s.companies++;save(s);
+      this.style.display='none';document.getElementById('companySuccess').classList.add('active');
+      toast('Interés de empresa registrado');
+    });
+
+    function saveSecretariat(){
+      const roles=[...document.querySelectorAll('.sec-role:checked')];
+      if(!roles.length){toast('Selecciona al menos una función');return}
+      const s=state();s.secretariatValidations++;s.secretariatRoles+=roles.length;save(s);
+      toast('Participación institucional registrada');
+    }
+
+    function renderMetrics(){
+      const s=state();
+      document.getElementById('mCompanyClicks').textContent=s.companyClicks;
+      document.getElementById('mStudentRegs').textContent=s.studentRegs;
+      const avg=s.regTimes.length ? Math.round(s.regTimes.reduce((a,b)=>a+b,0)/s.regTimes.length) : 0;
+      document.getElementById('mAvgTime').textContent=avg+' s';
+      const ease=s.ease.length ? (s.ease.reduce((a,b)=>a+b,0)/s.ease.length).toFixed(1)+' / 5' : '—';
+      document.getElementById('mEase').textContent=ease;
+      document.getElementById('mWait').textContent=s.waitTotal ? Math.round((s.waitYes/s.waitTotal)*100)+'%' : '—';
+      document.getElementById('mCompanies').textContent=s.companies;
+      document.getElementById('mSecretariat').textContent=s.secretariatValidations;
+      document.getElementById('mRoles').textContent=s.secretariatRoles;
+    }
+    function resetMetrics(){
+      if(confirm('¿Reiniciar todos los datos locales del prototipo?')){
+        localStorage.removeItem(KEY);renderMetrics();toast('Datos reiniciados');
+      }
+    }
+    renderMetrics();
+  </script>
+</body>
+</html>'''
+
+index_path = out_dir / "index.html"
+index_path.write_text(html, encoding="utf-8")
+
+readme = """PROGRAMA DE PRIMERA EXPERIENCIA PROFESIONAL - PROTOTIPO
+
+1. Abre index.html en Chrome, Safari o Edge.
+2. Los botones y formularios funcionan sin internet.
+3. La sección Modo equipo muestra métricas locales del experimento.
+4. Los datos se guardan solo en el navegador del computador donde se abra el archivo.
+5. Es un prototipo académico. No representa un programa oficial.
+
+Matrices integradas:
+- Interés de empresas y CTA Quiero vincular mi empresa.
+- Participación de la Secretaría y funciones posibles.
+- Proceso de registro de estudiantes.
+- Experiencia negativa/dificultad en el registro mediante tiempo y calificación.
+- Espera para recibir oportunidades mediante estado, tiempo estimado, notificaciones y pregunta de permanencia.
+"""
+(out_dir / "LEEME.txt").write_text(readme, encoding="utf-8")
+
+zip_path = Path("/mnt/data/Programa_Primera_Experiencia_Prototipo.zip")
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+    z.write(index_path, arcname="index.html")
+    z.write(out_dir / "LEEME.txt", arcname="LEEME.txt")
+
+# Also provide standalone HTML for convenience
+standalone = Path("/mnt/data/Programa_Primera_Experiencia_Prototipo.html")
+standalone.write_text(html, encoding="utf-8")
+
+print(f"HTML creado: {standalone}")
+print(f"ZIP creado: {zip_path}")
+print(f"Tamaño HTML: {standalone.stat().st_size/1024:.1f} KB")
